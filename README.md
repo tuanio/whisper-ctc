@@ -1,14 +1,16 @@
-1. Install dependencies
+# Whisper Encoder + CTC
 
-   ```bash
-   apt-get install espeak-ng -y
-   pip install -r requirements.txt
-   ```
+## Install dependencies
 
-2. Usage
+```bash
+apt-get install espeak-ng -y
+pip install -r requirements.txt
+```
 
-    ```bash
-    python main.py
-    ```
+## Usage
 
-    for more configuration, please refer to https://hydra.cc/docs/intro/
+```bash
+python main.py
+```
+
+for more configuration, please refer to https://hydra.cc/docs/intro/
