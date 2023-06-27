@@ -1,0 +1,10 @@
+model:
+  encoder_id: tuanio/whisper-encoder.tiny.en
+data:
+  dataset:
+    feat_extractor_id: ${model.encoder_id}
+    tokenizer_id: tuanio/wav2vec2-phoneme-ipa-ctc
+  dataloader:
+    batch_size: 4
+    num_workers: 2
+    pin_memory: true

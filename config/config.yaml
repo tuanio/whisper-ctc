@@ -1,0 +1,55 @@
+data_cfg:
+  dataset:
+    processor:
+      feat_extractor_id: ${model_cfg.model.encoder_id}
+      tokenizer_id: tuanio/wav2vec2-phoneme-ipa-ctc
+    path:
+      train:
+        - train_data/indict_tts_train.jsonl
+        - train_data/cv_train.jsonl
+      test:
+        - train_data/indict_tts_test.jsonl
+        - train_data/cv_test.jsonl
+      dev:
+        - train_data/indict_tts_dev.jsonl
+        - train_data/cv_dev.jsonl
+  dataloader:
+    batch_size: 4
+    num_workers: 2
+    pin_memory: True
+
+model_cfg:
+  model:
+    encoder_id: str = "tuanio/whisper-encoder.tiny.en"
+  optim:
+    lr: 3e-4
+    betas: [0.9, 0.95]
+    weight_decay: 0.01
+  scheduler:
+    name: linear
+    total_steps: -1
+    warmup_ratio: 0.05
+    interval: step
+    frequency: 1
+
+trainer_cfg:
+  logger_wandb:
+    project: aped_indian-lish
+    name: whisper-tiny-1
+    log_model: all
+  arguments:
+    accelerator: gpu
+    devices: -1
+    max_epochs: 10
+    log_every_n_steps: 1
+    enable_checkpoiting: True
+    accumulate_grad_batches: 8
+    inference_mode: True
+
+
+experiment_cfg:
+  train: False
+  test: False
+  ckpt:
+    resume_ckpt: False
+    ckpt_path: ...
