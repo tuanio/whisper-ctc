@@ -1,7 +1,7 @@
 1. Install dependencies
 
    ```bash
-    apt-get install espeak-ng -y
+   apt-get install espeak-ng -y
    pip install -r requirements.txt
    ```
 
