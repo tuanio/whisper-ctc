@@ -1,4 +1,5 @@
 train_data/
 raw_data/
-output/
+outputs/
+wandb/
 __pycache__
