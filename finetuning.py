@@ -1,5 +1,6 @@
 import torch
 import hydra
+import lightning as L
 from lightning.pytorch.loggers import WandbLogger
 from omegaconf import DictConfig, OmegaConf
 from dataset import SpeechDataModule
@@ -8,6 +9,9 @@ from model import WhisperModel
 
 @hydra.main(version_base=None, config_path="config", config_name="config")
 def main(cfg: DictConfig) -> None:
+    print("Set high float 32 matmul precision")
+    torch.set_float32_matmul_precision("high")
+
     datamodule = SpeechDataModule(cfg.data_cfg)
 
     print("Change [total_steps] params.")
@@ -18,7 +22,7 @@ def main(cfg: DictConfig) -> None:
 
     logger = WandbLogger(**cfg.trainer_cfg.logger_wandb)
 
-    trainer = pl.Trainer(**cfg.trainer_cfg.arguments, logger=logger)
+    trainer = L.Trainer(**cfg.trainer_cfg.arguments, logger=logger)
 
     ckpt_path = None
     if cfg.experiment_cfg.ckpt.resume_ckpt:

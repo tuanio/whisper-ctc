@@ -4,6 +4,9 @@ data_cfg:
       feat_extractor_id: ${model_cfg.model.encoder_id}
       tokenizer_id: tuanio/wav2vec2-phoneme-ipa-ctc
     path:
+      base:
+        indict_tts: ../IndicTTS
+        cv: ../
       train:
         - train_data/indict_tts_train.jsonl
         - train_data/cv_train.jsonl
@@ -15,12 +18,12 @@ data_cfg:
         - train_data/cv_dev.jsonl
   dataloader:
     batch_size: 4
-    num_workers: 2
+    num_workers: 8
     pin_memory: True
 
 model_cfg:
   model:
-    encoder_id: str = "tuanio/whisper-encoder.tiny.en"
+    encoder_id: tuanio/whisper-encoder.tiny.en
   optim:
     lr: 3e-4
     betas: [0.9, 0.95]
@@ -42,14 +45,14 @@ trainer_cfg:
     devices: -1
     max_epochs: 10
     log_every_n_steps: 1
-    enable_checkpoiting: True
+    enable_checkpointing: True
     accumulate_grad_batches: 8
     inference_mode: True
 
 
 experiment_cfg:
   train: False
-  test: False
+  test: True
   ckpt:
     resume_ckpt: False
     ckpt_path: ...

@@ -3,6 +3,7 @@ from torch import nn
 from transformers import get_scheduler
 from transformers.models.whisper.modeling_whisper import WhisperEncoder
 import lightning as L
+from torch import Tensor
 from utils import ENCODER_OUTPUT_LENGTH
 from jiwer import wer as cal_wer
 
@@ -23,6 +24,7 @@ class WhisperCTC(nn.Module):
 
 class WhisperModel(L.LightningModule):
     def __init__(self, cfg):
+        super().__init__()
         self.model = WhisperCTC(**cfg.model)
         self.ctc_loss = nn.CTCLoss(blank=3)  # as in vocab json
 
@@ -60,6 +62,7 @@ class WhisperModel(L.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
+        print(batch)
         feat, target, target_length = batch
         N = feat.size(0)
         output = self(x)
@@ -84,6 +87,7 @@ class WhisperModel(L.LightningModule):
         return {"wer": wer, "loss": loss}
 
     def test_step(self, batch, batch_idx):
+        print("Batch:", batch)
         feat, target, target_length = batch
         N = feat.size(0)
         output = self(x)
