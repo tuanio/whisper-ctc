@@ -46,13 +46,28 @@ class SpeechDataModule(L.LightningDataModule):
         )
 
     def train_dataloader(self):
-        return DataLoader(self.train_set, shuffle=True, **self.cfg.dataloader)
+        return DataLoader(
+            self.train_set,
+            shuffle=True,
+            **self.cfg.dataloader,
+            collate_fn=self.collate_fn
+        )
 
     def val_dataloader(self):
-        return DataLoader(self.dev_set, shuffle=False, **self.cfg.dataloader)
+        return DataLoader(
+            self.dev_set,
+            shuffle=False,
+            **self.cfg.dataloader,
+            collate_fn=self.collate_fn
+        )
 
     def test_dataloader(self):
-        return DataLoader(self.test_set, shuffle=False, **self.cfg.dataloader)
+        return DataLoader(
+            self.test_set,
+            shuffle=False,
+            **self.cfg.dataloader,
+            collate_fn=self.collate_fn
+        )
 
     def collate_fn(self, batch):
         feat_output = self.feat_extractor(
