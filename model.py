@@ -50,7 +50,7 @@ class WhisperModel(L.LightningModule):
     def training_step(self, batch, batch_idx):
         feat, target, target_length = batch
         N = feat.size(0)
-        output = self(x)
+        output = self(feat)
         output_length = torch.full(
             size=(N,),
             fill_value=ENCODER_OUTPUT_LENGTH,
@@ -62,10 +62,9 @@ class WhisperModel(L.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        print(batch)
         feat, target, target_length = batch
         N = feat.size(0)
-        output = self(x)
+        output = self(feat)
         output_length = torch.full(
             size=(N,),
             fill_value=ENCODER_OUTPUT_LENGTH,
@@ -87,10 +86,9 @@ class WhisperModel(L.LightningModule):
         return {"wer": wer, "loss": loss}
 
     def test_step(self, batch, batch_idx):
-        print("Batch:", batch)
         feat, target, target_length = batch
         N = feat.size(0)
-        output = self(x)
+        output = self(feat)
         output_length = torch.full(
             size=(N,),
             fill_value=ENCODER_OUTPUT_LENGTH,

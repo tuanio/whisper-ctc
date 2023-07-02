@@ -16,7 +16,7 @@ class SpeechDataset(Dataset):
             for line in f:
                 datum = json.loads(line)
                 datum["audio_path"] = os.path.join(base[file_type], datum["audio_path"])
-                self.data.append(json.loads(line))
+                self.data.append(datum)
 
     def __len__(self):
         return len(self.data)
@@ -80,7 +80,7 @@ class SpeechDataModule(L.LightningDataModule):
 
         label_output = self.tokenizer(
             [i["label"] for i in batch],
-            pading=True,
+            padding=True,
             truncation=True,
             return_tensors="pt",
         )
