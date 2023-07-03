@@ -1,5 +1,6 @@
 import torch
 import hydra
+import pandas as pd
 import lightning as L
 from lightning.pytorch.loggers import WandbLogger
 from omegaconf import DictConfig, OmegaConf
@@ -20,9 +21,16 @@ def main(cfg: DictConfig) -> None:
     )
     model = WhisperModel(cfg.model_cfg)
 
-    logger = WandbLogger(**cfg.trainer_cfg.logger_wandb)
+    early_stop_callback = EarlyStopping(**cfg.trainer_cfg.callbacks.early_stop)
+    callbacks = [early_stop_callback]
 
-    trainer = L.Trainer(**cfg.trainer_cfg.arguments, logger=logger)
+    if cfg.trainer_cfg.log.wandb:
+        logger = WandbLogger(**cfg.trainer_cfg.logger_wandb)
+        trainer = L.Trainer(
+            **cfg.trainer_cfg.arguments, logger=logger, callbacks=callbacks
+        )
+    else:
+        trainer = L.Trainer(**cfg.trainer_cfg.arguments, callbacks=callbacks)
 
     ckpt_path = None
     if cfg.experiment_cfg.ckpt.resume_ckpt:

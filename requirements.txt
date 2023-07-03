@@ -6,3 +6,4 @@ wandb==0.15.4
 transformers==4.30.2
 jiwer==3.0.2
 phonemizer==3.2.1
+librosa

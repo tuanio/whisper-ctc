@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from transformers import get_scheduler
+from transformers import get_scheduler, Wav2Vec2PhonemeCTCTokenizer
 from transformers.models.whisper.modeling_whisper import WhisperEncoder
 import lightning as L
 from torch import Tensor
@@ -14,11 +14,17 @@ class WhisperCTC(nn.Module):
     ):
         super().__init__()
         self.encoder = WhisperEncoder.from_pretrained(encoder_id)
+        print("Freezing Whisper Encoder...")
+        self.encoder._freeze_parameters()
+        print("Freezed!")
         self.ctc_head = nn.Linear(self.encoder.config.d_model, vocab_size)
 
-    def forward(self, **x):
-        logits = self.ctc_head(self.encoder(**x).last_hidden_state)
-        log_probs = nn.functional.log_softmax(logits)
+    def forward(self, feat: Tensor, attn_mask: Tensor):
+        enc = self.encoder(
+            input_features=feat, attention_mask=attn_mask
+        ).last_hidden_state
+        logits = self.ctc_head(enc)
+        log_probs = nn.functional.log_softmax(logits, dim=-1)
         return log_probs
 
 
@@ -27,55 +33,60 @@ class WhisperModel(L.LightningModule):
         super().__init__()
         self.model = WhisperCTC(**cfg.model)
         self.ctc_loss = nn.CTCLoss(blank=3)  # as in vocab json
+        self.tokenizer = Wav2Vec2PhonemeCTCTokenizer.from_pretrained(cfg.tokenizer_id)
+        self.cfg = cfg
 
-    def forward(self, x: Tensor):
-        return self.model(x)
+    def forward(self, feat: Tensor, attn_mask: Tensor):
+        return self.model(feat, attn_mask)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), **self.optim)
+        optimizer = torch.optim.AdamW(self.parameters(), **self.cfg.optim)
         scheduler = {
             "scheduler": get_scheduler(
-                name=self.scheduler.name,
+                name=self.cfg.scheduler.name,
                 optimizer=optimizer,
                 num_warmup_steps=round(
-                    self.scheduler.warmup_ratio * self.scheduler.total_steps
+                    self.cfg.scheduler.warmup_ratio * self.cfg.scheduler.total_steps
                 ),
-                num_training_steps=self.scheduler.total_steps,
+                num_training_steps=self.cfg.scheduler.total_steps,
             ),
-            "interval": self.scheduler.interval,
-            "frequency": self.scheduler.frequency,
+            "interval": self.cfg.scheduler.interval,
+            "frequency": self.cfg.scheduler.frequency,
         }
         return [optimizer], [scheduler]
 
     def training_step(self, batch, batch_idx):
-        feat, target, target_length = batch
+        feat, attn_mask, target, target_length = batch
         N = feat.size(0)
-        output = self(feat)
+        output = self(feat, attn_mask)
         output_length = torch.full(
             size=(N,),
             fill_value=ENCODER_OUTPUT_LENGTH,
             dtype=torch.long,
             device=feat.device,
         )
-        loss = self.ctc_loss(output, target, output_length, target_length)
+        loss = self.ctc_loss(
+            output.permute(1, 0, 2), target, output_length, target_length
+        )
         self.log("train/loss", loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        feat, target, target_length = batch
+        feat, attn_mask, target, target_length = batch
         N = feat.size(0)
-        output = self(feat)
+        output = self(feat, attn_mask)
         output_length = torch.full(
             size=(N,),
             fill_value=ENCODER_OUTPUT_LENGTH,
             dtype=torch.long,
             device=feat.device,
         )
+        loss = self.ctc_loss(
+            output.permute(1, 0, 2), target, output_length, target_length
+        )
 
-        loss = self.ctc_loss(output, target, output_length, target_length)
-
-        target_sequences = tokenizer.batch_decode(target, skip_special_tokens=True)
-        predict_sequences = tokenizer.batch_decode(
+        target_sequences = self.tokenizer.batch_decode(target, skip_special_tokens=True)
+        predict_sequences = self.tokenizer.batch_decode(
             output.argmax(-1), skip_special_tokens=True
         )
         wer = cal_wer(target_sequences, predict_sequences)
@@ -86,20 +97,21 @@ class WhisperModel(L.LightningModule):
         return {"wer": wer, "loss": loss}
 
     def test_step(self, batch, batch_idx):
-        feat, target, target_length = batch
+        feat, attn_mask, target, target_length = batch
         N = feat.size(0)
-        output = self(feat)
+        output = self(feat, attn_mask)
         output_length = torch.full(
             size=(N,),
             fill_value=ENCODER_OUTPUT_LENGTH,
             dtype=torch.long,
             device=feat.device,
         )
+        loss = self.ctc_loss(
+            output.permute(1, 0, 2), target, output_length, target_length
+        )
 
-        loss = self.ctc_loss(output, target, output_length, target_length)
-
-        target_sequences = tokenizer.batch_decode(target, skip_special_tokens=True)
-        predict_sequences = tokenizer.batch_decode(
+        target_sequences = self.tokenizer.batch_decode(target, skip_special_tokens=True)
+        predict_sequences = self.tokenizer.batch_decode(
             output.argmax(-1), skip_special_tokens=True
         )
         wer = cal_wer(target_sequences, predict_sequences)

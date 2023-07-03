@@ -1,4 +1,6 @@
-import torchaudio
+import librosa
+
+# import torchaudio
 from transformers import Wav2Vec2PhonemeCTCTokenizer, WhisperFeatureExtractor
 
 BASE_SAMPLE_RATE = 16000
@@ -7,10 +9,16 @@ ENCODER_OUTPUT_LENGTH = ENCODER_MAX_LENGTH // 2
 
 
 def load_and_resample(audio_path):
-    wav, sr = torchaudio.load(audio_path)
-    if sr != BASE_SAMPLE_RATE:
-        wav = torchaudio.functional.resample(wav, sr, BASE_SAMPLE_RATE)
-    return wav.mean(axis=0).numpy()  # mean the channel
+    # torchaudio
+    # wav, sr = torchaudio.load(audio_path)
+    # if sr != BASE_SAMPLE_RATE:
+    #     wav = torchaudio.functional.resample(wav, sr, BASE_SAMPLE_RATE)
+    # return wav.mean(axis=0).numpy()  # mean the channel
+
+    # librosa
+    wav, sr = librosa.load(audio_path, sr=BASE_SAMPLE_RATE)
+    wav = librosa.effects.preemphasis(wav, coef=0.97)
+    return wav
 
 
 def make_feat_extractor_and_tokenizer(feat_extractor_id, tokenizer_id):

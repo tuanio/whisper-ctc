@@ -77,14 +77,31 @@ class SpeechDataModule(L.LightningDataModule):
             return_tensors="pt",
         )
         feat = feat_output.input_features
+        attn_mask = feat_output.attention_mask
+
+        rem_idx = []
+        for i, f in enumerate(feat):
+            is_zero = torch.allclose(f, torch.zeros_like(f))
+            if is_zero:
+                rem_idx.append(i)
 
         label_output = self.tokenizer(
             [i["label"] for i in batch],
             padding=True,
-            truncation=True,
             return_tensors="pt",
         )
         target = label_output.input_ids
         target_length = label_output.attention_mask.sum(axis=1)
 
-        return feat, target, target_length
+        keep_idx = []
+        for i in range(feat.size(0)):
+            if i in rem_idx:
+                keep_idx.append(i)
+        keep_idx = torch.IntTensor(keep_idx)
+
+        feat = feat[keep_idx, :]
+        attn_mask = attn_mask[keep_idx, :]
+        target = target[keep_idx, :]
+        target_length = target_length[keep_idx, :]
+
+        return feat, attn_mask, target, target_length
